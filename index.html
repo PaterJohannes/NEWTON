@@ -55,7 +55,7 @@ function accelerations(){var a=bodies.map(function(){return {x:0,y:0}});for(var 
 // avec une limite de 1 000 points par corps.
 function step(){var a=accelerations();if(!a)return;for(var i=0;i<3;i++){bodies[i].vx+=a[i].x*dt/2;bodies[i].vy+=a[i].y*dt/2;bodies[i].x+=bodies[i].vx*dt;bodies[i].y+=bodies[i].vy*dt}a=accelerations();if(!a)return;for(var i=0;i<3;i++){bodies[i].vx+=a[i].x*dt/2;bodies[i].vy+=a[i].y*dt/2}t+=dt;if(Math.round(t/dt)%8===0){for(var i=0;i<3;i++){tracks[i].push([bodies[i].x,bodies[i].y]);if(tracks[i].length>1000)tracks[i].shift()}}}
 // INTERACTION : convertir la position du doigt/de la souris en SVG.
-function locationOf(e){var r=$('plane').getBoundingClientRect();return {x:(e.clientX-r.left)*640/r.width,y:(e.clientY-r.top)*600/r.height}}
+function locationOf(e){var plane=$('plane');var point=new DOMPoint(e.clientX,e.clientY);var svgPoint=point.matrixTransform(plane.getScreenCTM().inverse());return {x:svgPoint.x,y:svgPoint.y}}
 // Autoriser le déplacement uniquement avant le début de l'évolution.
 function startDrag(e){if(running||t>0)return;drag=selected;moveDrag(e)}
 // Déplacer le corps choisi et synchroniser ses curseurs X et Y.
