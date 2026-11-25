@@ -53,7 +53,38 @@ function accelerations(){var a=bodies.map(function(){return {x:0,y:0}});for(var 
 // 4. Seconde demi-correction des vitesses.
 // On mémorise un point de trajectoire tous les huit pas,
 // avec une limite de 1 000 points par corps.
-function step(){var a=accelerations();if(!a)return;for(var i=0;i<3;i++){bodies[i].vx+=a[i].x*dt/2;bodies[i].vy+=a[i].y*dt/2;bodies[i].x+=bodies[i].vx*dt;bodies[i].y+=bodies[i].vy*dt}a=accelerations();if(!a)return;for(var i=0;i<3;i++){bodies[i].vx+=a[i].x*dt/2;bodies[i].vy+=a[i].y*dt/2}t+=dt;if(Math.round(t/dt)%8===0){for(var i=0;i<3;i++){tracks[i].push([bodies[i].x,bodies[i].y]);if(tracks[i].length>1000)tracks[i].shift()}}}
+function step(){
+  // Un pas est transactionnel : si les nouvelles positions sont refusées,
+  // restaurer aussi les vitesses afin qu'elles correspondent toujours à t.
+  var savedBodies=bodies.map(function(b){
+    return {m:b.m,x:b.x,y:b.y,vx:b.vx,vy:b.vy}
+  });
+  var a=accelerations();
+  if(!a)return false;
+  for(var i=0;i<3;i++){
+    bodies[i].vx+=a[i].x*dt/2;
+    bodies[i].vy+=a[i].y*dt/2;
+    bodies[i].x+=bodies[i].vx*dt;
+    bodies[i].y+=bodies[i].vy*dt
+  }
+  a=accelerations();
+  if(!a){
+    bodies=savedBodies;
+    return false
+  }
+  for(var i=0;i<3;i++){
+    bodies[i].vx+=a[i].x*dt/2;
+    bodies[i].vy+=a[i].y*dt/2
+  }
+  t+=dt;
+  if(Math.round(t/dt)%8===0){
+    for(var i=0;i<3;i++){
+      tracks[i].push([bodies[i].x,bodies[i].y]);
+      if(tracks[i].length>1000)tracks[i].shift()
+    }
+  }
+  return true
+}
 // INTERACTION : convertir la position du doigt/de la souris en SVG.
 function locationOf(e){var plane=$('plane');var point=new DOMPoint(e.clientX,e.clientY);var svgPoint=point.matrixTransform(plane.getScreenCTM().inverse());return {x:svgPoint.x,y:svgPoint.y}}
 // Autoriser le déplacement uniquement avant le début de l'évolution.
@@ -95,7 +126,7 @@ $('clearVectors').addEventListener('click',function(){
 // BOUCLE D'ANIMATION : synchroniser le temps réel et le temps simulé.
 // Les calculs ne sont exécutés que pendant la marche ; le navigateur
 // peut demander des images à son propre rythme via requestAnimationFrame.
-function frame(now){var elapsed=previous?Math.min((now-previous)/1000,0.05):0;previous=now;if(running){acc+=elapsed*Number($('rate').value);var n=0;while(acc>=dt&&n<180&&running){step();acc-=dt;n++}render()}requestAnimationFrame(frame)}
+function frame(now){var elapsed=previous?Math.min((now-previous)/1000,0.05):0;previous=now;if(running){acc+=elapsed*Number($('rate').value);var n=0;while(acc>=dt&&n<180&&running){if(!step()){acc=0;break}acc-=dt;n++}render()}requestAnimationFrame(frame)}
 // INITIALISATION : construire les commandes, préparer les trois corps
 // et lancer la boucle d'affichage.
 makeControls();reset();requestAnimationFrame(frame);
